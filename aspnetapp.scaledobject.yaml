@@ -1,0 +1,18 @@
+apiVersion: keda.k8s.io/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sample-scaledobject
+spec:
+  scaleTargetRef:
+    deploymentName: sample
+  pollingInterval: 10  # Optional. Default: 30 seconds
+  cooldownPeriod:  30  # Optional. Default: 300 seconds
+  minReplicaCount: 1   # Optional. Default: 0
+  maxReplicaCount: 10  # Optional. Default: 100
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://my-release-prometheus-oper-prometheus.prometheus-operator.svc.cluster.local:9090
+      metricName: nginx_ingress_controller_requests
+      threshold: '10'
+      query: sum(rate(nginx_ingress_controller_requests[1m])) / count(kube_pod_info{pod=~"sample.*"})
