@@ -21,9 +21,24 @@ Example Prometheus Scaler:
 
 ## Demo
 
-Create an AKS cluster with a Windows node pool.
+Create an AKS cluster then add a Windows node pool:
 
-Taint windows nodes to avoid installing Linux pods onto Windows nodes:
+```sh
+az aks nodepool add \
+  --name winpool1 \
+  -g <resource-group> \
+  --cluster-name <cluster-name> \
+  -k 1.17.9 \
+  --node-zones 1 2 3 \
+  --node-vm-size Standard_D4_v2 \
+  --node-count 1 \
+  --enable-cluster-autoscaler \
+  --min-count 1 \
+  --max-count 2 \
+  --node-taints os=windows:NoSchedule
+```
+
+Taint windows nodes (if not already tainted) to avoid installing Linux pods onto Windows nodes:
 
 ```sh
 kubectl taint node <windows_node_name> os=windows:NoSchedule
