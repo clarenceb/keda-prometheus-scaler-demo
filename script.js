@@ -11,7 +11,7 @@ export let options = {
 
 export default function() {
   // Set your sample app ingress DNS name here
-  let res = http.get('http://xxxxxxxxxxx.australiaeast.cloudapp.azure.com/');
+  let res = http.get('http://<dnsname>.<region>.cloudapp.azure.com/');
   check(res, { 'status was 200': r => r.status == 200 });
   sleep(1);
 }

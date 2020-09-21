@@ -161,9 +161,9 @@ kubectl apply -f aspnetapp.ingress.yaml -n sampleapp
 kubectl apply -f aspnetapp.scaledobject.yaml -n sampleapp
 ```
 
-Access the app via the DNS name (expozxed via Ingress):
+Access the app via the DNS name (exposed via Ingress):
 
-* http://scaledemocxb.australiaeast.cloudapp.azure.com/
+* `http://<dnsname>.<region>.cloudapp.azure.com/`
 
 Install K6 for load testing:
 
