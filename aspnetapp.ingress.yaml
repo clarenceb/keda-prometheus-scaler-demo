@@ -6,9 +6,9 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    # Must specofy a HOST of not metrics will be reports for request count
+    # Must specify a HOST otherwise no metrics will be reported for request count
     # See: https://github.com/kubernetes/ingress-nginx/issues/3713
-  - host: xxxxxxxxxxx.australiaeast.cloudapp.azure.com
+  - host: <dnsname>.<region>.cloudapp.azure.com
     http:
       paths:
       - backend:

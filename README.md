@@ -23,6 +23,27 @@ Example Prometheus Scaler:
 
 Create an AKS cluster with a Windows node pool.
 
+Taint windows nodes to avoid installing Linux pods onto Windows nodes:
+
+```sh
+kubectl taint node <windows_node_name> os=windows:NoSchedule
+```
+
+Install Prometheus Operator to get a monitoring stack installed:
+
+```sh
+# See: https://github.com/prometheus-operator/prometheus-operator
+kubectl create ns prometheus-operator
+helm upgrade --install my-release stable/prometheus-operator \
+    --namespace prometheus-operator \
+    --set prometheus.prometheusSpec.serviceMonitorSelector=""
+
+# TODO: Prometheus node-exporters keep targetting Windows nodes even though they are tainted - need to fix this.
+
+# Edit serviceMonitorSelector to be {}
+kubectl edit prometheus my-release-prometheus-oper-prometheus -n prometheus-operator -o yaml
+```
+
 Install NGINX Ingress controller:
 
 ```sh
@@ -73,28 +94,6 @@ az network public-ip update --ids $PUBLICIPID --dns-name $DNSNAME
 az network public-ip show --ids $PUBLICIPID --query "[dnsSettings.fqdn]" --output tsv
 ```
 
-Taint windows nodes to avoid installing Linux pods onto Windows nodes:
-
-```sh
-kubectl taint node <windows_node_name> os=windows:NoSchedule
-```
-
-Install Prometheus Operator to get a monitoring stack installed:
-
-```sh
-# See: https://github.com/prometheus-operator/prometheus-operator
-helm upgrade --install my-release stable/prometheus-operator \
-    --namespace prometheus-operator \
-    # --set prometheusOperator.nodeSelector."beta\.kubernetes\.io/os"=linux \
-    # --set prometheus.prometheusSpec.nodeSelector."beta\.kubernetes\.io/os"=linux \
-    # --set alertmanager.alertmanagerSpec.nodeSelector."beta\.kubernetes\.io/os"=linux \
-    # --set prometheusOperator.admissionWebhooks.patch.nodeSelector."beta\.kubernetes\.io/os"=linux \
-    # --set grafana.nodeSelector."beta\.kubernetes\.io/os"=linux \
-    --set prometheus.prometheusSpec.serviceMonitorSelector={}
-
-# Note: Still had issue with my-release-prometheus-node-exporter-xxxxxxx and my-release-kube-state-metrics-xxxxxxx-xxxx pods targetting windows node(s).
-```
-
 View the Grafana window:
 
 ```sh
@@ -138,9 +137,10 @@ Deploy the sample ASP.NET Windows app:
 
 ```sh
 kubectl create ns sampleapp
-kubectl apply -f aspnetapp.deploy.yaml
-kubectl apply -f aspnetapp.ingress.yaml
-kubectl apply -f aspnetapp.scaledobject.yaml
+kubectl apply -f aspnetapp.deploy.yaml -n sampleapp
+# Edit aspnetapp.ingress.yaml to add your DNSNAME
+kubectl apply -f aspnetapp.ingress.yaml -n sampleapp
+kubectl apply -f aspnetapp.scaledobject.yaml -n sampleapp
 ```
 
 Access the app via the DNS name (expozxed via Ingress):
