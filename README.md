@@ -55,8 +55,11 @@ helm upgrade --install my-release stable/prometheus-operator \
 
 # TODO: Prometheus node-exporters keep targetting Windows nodes even though they are tainted - need to fix this.
 
-# Edit serviceMonitorSelector to be {}
+# Edit serviceMonitorSelector to look like this:
+#   serviceMonitorNamespaceSelector: {}
+#   serviceMonitorSelector: {}
 kubectl edit prometheus my-release-prometheus-oper-prometheus -n prometheus-operator -o yaml
+# TODO: Not sure how to set this via the helm --set parameter, so that's why we edit it here after installation.
 ```
 
 Install NGINX Ingress controller:
