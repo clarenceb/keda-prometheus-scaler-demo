@@ -13,7 +13,7 @@ Example Prometheus Scaler:
   triggers:
   - type: prometheus
     metadata:
-      serverAddress: http://my-release-prometheus-oper-prometheus.prometheus-operator.svc.cluster.local:9090
+      serverAddress: http://prometheus-operator-prometheus.prometheus-operator.svc.cluster.local:9090
       metricName: nginx_ingress_controller_requests
       threshold: '10'
       query: sum(rate(nginx_ingress_controller_requests[1m])) / count(kube_pod_info{pod=~"sample.*"})
@@ -24,17 +24,21 @@ Example Prometheus Scaler:
 Create an AKS cluster then add a Windows node pool:
 
 ```sh
+RESOURCE_GROUP=<resource-group>
+CLUSTER=<cluster-name>
+
 az aks nodepool add \
-  --name winpool1 \
-  -g <resource-group> \
-  --cluster-name <cluster-name> \
-  -k 1.17.9 \
+  --name winnp1 \
+  -g $RESOURCE_GROUP \
+  --cluster-name $CLUSTER \
+  -k 1.18.8 \
   --node-zones 1 2 3 \
   --node-vm-size Standard_D4_v2 \
   --node-count 1 \
   --enable-cluster-autoscaler \
   --min-count 1 \
   --max-count 2 \
+  --os-type Windows \
   --node-taints os=windows:NoSchedule
 ```
 
@@ -49,7 +53,7 @@ Install Prometheus Operator to get a monitoring stack installed:
 ```sh
 # See: https://github.com/prometheus-operator/prometheus-operator
 kubectl create ns prometheus-operator
-helm upgrade --install my-release stable/prometheus-operator \
+helm upgrade --install prometheus-operator stable/prometheus-operator \
     --namespace prometheus-operator \
     --set prometheus.prometheusSpec.serviceMonitorSelector=""
 
@@ -58,33 +62,33 @@ helm upgrade --install my-release stable/prometheus-operator \
 # Edit serviceMonitorSelector to look like this:
 #   serviceMonitorNamespaceSelector: {}
 #   serviceMonitorSelector: {}
-kubectl edit prometheus my-release-prometheus-oper-prometheus -n prometheus-operator -o yaml
+kubectl edit prometheus -n prometheus-operator -o yaml
 # TODO: Not sure how to set this via the helm --set parameter, so that's why we edit it here after installation.
 ```
 
 Install NGINX Ingress controller:
 
 ```sh
-kubectl create namespace ingress-basic
+kubectl create namespace ingress-public
 helm repo add stable https://kubernetes-charts.storage.googleapis.com/
 
 helm upgrade --install nginx-ingress stable/nginx-ingress \
-    --namespace ingress-basic \
+    --namespace ingress-public \
     --set controller.replicaCount=2 \
     --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
     --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux \
     --set controller.metrics.enabled=true \
     --set controller.metrics.serviceMonitor.enabled=true \
     --set controller.metrics.serviceMonitor.scrapeInterval=10s \
-    --set controller.metrics.service.type=LoadBalancer
+    --set controller.metrics.service.type=ClusterIP
 
-kubectl get service -l app=nginx-ingress --namespace ingress-basic
+kubectl get service -l app=nginx-ingress --namespace ingress-public
 ```
 
 A Service called `nginx-ingress-controller-metrics` is exposed to expose Ingress Controller metrics in prometheus format.
 
 ```sh
-kubectl port-forward service/nginx-ingress-controller-metrics 9913:9913 -n ingress-basic
+kubectl port-forward service/nginx-ingress-controller-metrics 9913:9913 -n ingress-public
 ``
 
 See the prom metrics for ingress controller:
@@ -115,7 +119,7 @@ az network public-ip show --ids $PUBLICIPID --query "[dnsSettings.fqdn]" --outpu
 View the Grafana window:
 
 ```sh
-kubectl port-forward service/my-release-grafana 8080:80 -n prometheus-operator
+kubectl port-forward service/prometheus-operator-grafana 8080:80 -n prometheus-operator
 # Login: admin
 # Password: prom-operator
 ```
@@ -123,7 +127,7 @@ kubectl port-forward service/my-release-grafana 8080:80 -n prometheus-operator
 View the Prom window:
 
 ```sh
-kubectl port-forward service/my-release-prometheus-oper-prometheus 9090:9090 -n prometheus-operator
+kubectl port-forward service/prometheus-operator-prometheus 9090:9090 -n prometheus-operator
 ```
 
 Run some Prom Queries:
